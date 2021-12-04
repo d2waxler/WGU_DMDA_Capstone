@@ -1,0 +1,604 @@
+Patient Health Data Analysis by Doug Waxler
+========================================================
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+
+library(ggplot2)
+library(corrgram)
+library(knitr)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+pf <- read.csv("heart.csv")
+pf2 <- read.csv("heart2.csv")
+```
+
+### Introduction
+
+The following data analysis will look at the diagnoses of patients with and\     
+without heart disease. I will examine the data set, look at ranges of values\ 
+and look for outliers. I will also check for correlation between variables.\  
+
+
+>For this analysis I loaded ggplot2, corrgram for correlation plotting, and 
+knitr for printing tables cleanly.
+
+# Univariate Plots
+
+#### I'll start by looking at the columns and a few rows.
+
+```{r, columnlist, echo=FALSE, message=FALSE, warning=FALSE}
+names(pf)
+```
+
+
+```{r, headprint, echo=FALSE, results='asis'}
+kable(pf[1:5, ])
+```
+
+
+
+Here is the summary of the values of each variable. There are 12 \  
+characteristics for each patient.
+
+
+
+```{r, summary, echo=FALSE}
+summary(pf[1:12])
+```
+
+Looking at the data, a few things are noteworthy.  Ages range between 28 and\  
+77, with median age at 54. Systolic blood pressure ranged to 200, but has a\  
+minimum of 0 which may be an outlier.  
+
+Max cholesterol ratings of 603 is a sign of hypercholesterolemia, which is a\  
+strong factor in heart disease and results in total cholesterol levels\  
+typically between 300-600. This will be a good correlation to check.
+
+Heart rates range between 60 and 202, which seems reasonable, and the max\  
+in this category may have been taken in an urgent situation for the patient. 
+
+For Fasting Blood Sugar, I had to research the data presented. In this case,\  
+a 1 represents a fasting blood sugar greater than 120 mg/dl. A 0 would indicate\  
+that fasting blood sugar was less than or equal to 120.
+
+```{r, age_dist, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(Age, data=pf, binwidth=1, xlab="Age Range", xlims=0:10, 
+      main="Age Distribution")+
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+The majority of ages in the dataset are between 50 & 60 years old. The mean\  
+and median values noted above confirm this to be valid, as does this charting.
+
+```{r, PtSex, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(Sex, data=pf, geom="auto", fill=Sex,  
+    main="Patient Sex", xlab="Sex",
+    ylab="Quantity")+
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+Patient gender (sex) of the dataset is heavily weighted toward males.
+
+```{r, ChestPain, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(ChestPainType, data=pf, geom="auto", fill=ChestPainType,  
+    main="Chest Pain Type", xlab="Pain Type",
+    ylab="Quantity")+
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+Chest pain types for the audience are broken into 4 types. 
+
+```{r, RestBP, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(RestingBP, data=pf, geom="auto", fill=RestingBP,  
+    main="Resting Blood Pressure (Systolic)", xlab="mm Hg",
+    ylab="Quantity") +
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+Resting blood pressure of patients admitted seems to be heavily weighted \  
+between 125-150, with a moderate portion of patients also near the ideal \  
+range, or near 120.
+
+
+
+```{r, cholesterol, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(Cholesterol, data=pf, geom="auto", fill=Cholesterol,  
+    main="Cholestorol", xlab="mg/dl",
+    ylab="Quantity")+
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+It seems a lot of folks may not have had cholesterol checked upon admission\  
+to the emergency room, for the patients in this data set.
+
+
+```{r, BGover, echo=FALSE, message=FALSE, warning=FALSE}
+pf$FastingBS <- as.factor(pf$FastingBS)
+bp<- ggplot(pf, aes(x="1=Blood Glucose Over 120", 
+                    y="Fasting Blood Sugar Over 120", fill=FastingBS))+
+geom_bar(width = 1, stat = "identity")+
+   theme(plot.title = element_text(hjust = 0.5))
+
+pie <- bp + coord_polar("y", start=0)
+pie
+```
+
+This chart shows that over 3/4 of patients did not have a fasting blood sugar\  
+over 120 mg/dl.
+
+
+```{r, Rest_ECG, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(RestingECG, data=pf, geom="auto", fill=RestingECG,  
+    main="Resting ECG Reading", xlab="ST Elevation, Normal, or Left Ventricular  
+    Hypertrophy",
+    ylab="Quantity") +
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+Left ventricular hypertrophy, or LVH, is a term for a heart's left pumping\  
+chamber that has thickened and may not be pumping efficiently. Sometimes\  
+problems such as aortic stenosis or high blood pressure overwork the\  
+heart muscle. 
+(https://www.heart.org/en/health-topics/heart-valve-problems-and-disease/\  
+heart-valve-problems-and-causes/what-is-left-ventricular-hypertrophy-lvh)
+
+To summarize, non-ischemic causes of ST-segment elevation include left\  
+ventricular hypertrophy, pericarditis, ventricular-paced rhythms, hypothermia,\  
+hyperkalemia and other electrolyte imbalances, and left ventricular aneurysm. 
+(https://www.medscape.com/answers/155919-15140/what-are-the-non-ischemic-\  
+causes-of-st-segment-elevation)
+
+```{r, MaxHR, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(MaxHR, data=pf, geom="auto", fill=MaxHR,  
+    main="Max Heart Rate",
+    ylab="Quantity of Patients", xlab="Heart Rate in Beats per Minute")+
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+The heart rate of patients admitted shows a peak in volume around 140 beats\  
+per minute.  The vast majority of patients seem to fall in the 120-160 range.
+
+
+```{r, ExerciseAngina, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(ExerciseAngina, data=pf, geom="auto", fill=ExerciseAngina,  
+    main="Angina with Exercise", xlab="Angina Indicated with Exercise",
+    ylab="Quantity of Patients") +
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+Chest pain (angina) with exercise was only present in less than half of the\  
+total patient sample.
+
+
+```{r, Oldpeak, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(Oldpeak, data=pf, geom="auto", fill=Oldpeak,  
+    main="Old Peak", xlab="TBD",
+    ylab="Quantity of Patients") +
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+Old Peak represents a level of ST elevation in patients. It seems many had\  
+high (up) or low (down), or flat slops, but aside from Flat (0), it seems \  
+the bulk of patients' "old peak" values are between 0 and 2.5, concentrated\  
+near 1.25 to 2.
+
+
+```{r, ST_Slope, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(ST_Slope, data=pf, geom="auto", fill=ST_Slope,  
+    main="ST Slope", xlab="ST Slope Indication",
+    ylab="Quantity of Patients") +
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+ST Slope clearly was found to be flat in the majority of admitted patients. Up\  
+slopes were second, and we will later compare how this relates to heart disease\  
+diagnosis and other variables in the dataset. 
+
+
+```{r, HeartDisease, echo=FALSE, message=FALSE, warning=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+qplot(HeartDisease, data=pf, geom="auto", fill=HeartDisease,  
+    main="Heart Disease Diagnosis", xlab="Heart Disease Indicated",
+    ylab="Quantity of Patients") +
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Univariate Analysis
+
+There are a 918 patients in the dataset with the following statistics\  
+observed:
+   * Age	- Age of the pateint
+   * Sex	- Sex/gender of the patient
+   * ChestPainType - 
+      ATA - Atypical angina, or other non-cardiac chest pain
+      NAP - Non-anginal pain, or non-cardiac chest pain such as esophageal
+      ASY - Asymptomatic, or not showing signs
+      TA - Typical Angina, chest pain is related to decreased blood supply
+   * RestingBP	- Blood Pressure in mm Hg upon admission, 130-140 is cause for  
+      concern
+   * Cholesterol	- Serum cholesterol in mg/dl
+   * FastingBS	 - 0 or 1, 1 indicates fasting blood sugar > 120 mg/dl
+   * RestingECG - Normal, ST, LVH - ST elevation, or left ventricular 
+      hypertrophy
+   * MaxHR	- Max heart rate achieved
+   * ExerciseAngina	- Pain (angina) upon exercise
+   * Oldpeak - ST
+   * ST_Slope - Upslope, downslope, or flat/no slope during exercise
+   * HeartDisease - 1 or 0, indicating heart disease diagnosis (1=yes)
+
+Some of the main features in the dataset seem to be Max Heart Rate, with a \  
+fairly normal distribution overall, as well as Resting ECG readings, ST Slope,\  
+and of course the heart disease diagnosis indications.
+
+We will plot correlations between variables to see how these things relate.
+
+Resting ECG readings and ST Slopes will be an interesting comparison as well.
+
+
+# Bivariate Plots
+
+
+I'd like to start by examining the correlation among all the variables. In this\  
+chart the darker blue indicates strong correlation, whereas darker red indicates\  
+negative correlation between the variables.
+
+```{r CorrPlot1, echo=FALSE}
+corrgram(pf2, order=TRUE, lower.panel=panel.shade, upper.panel=panel.cor, 
+         label.pos = c(0.5, 0.5), gap=.3, 
+         label.srt=0, text.panel=panel.txt, 
+         main="Heart Disease Correlation to Various Vitals and Statistics")
+```
+
+
+This plot shows us that strong relationships exist between heart disease \  
+diagnosis, and exercise angina.  Additionally, slightly weaker but still \  
+strong correlations exist between Heart Disease and "Oldpeak", and age is \  
+still a considerable factor.
+
+Negative correlations seem to exist strongly between Heart Disease and ST Slope\  
+as well as MaxHR (Max Heart Rate).  We will do some bivariate analysis amongst\  
+these variables.
+
+
+
+>Next we'll examine the relationships between a few variables, particularly  
+some that I hypothesize will relate to a heart disease diagnosis strongly,
+based on the correlation plot above.
+
+```{r, HD_Angina2, echo=FALSE, message=FALSE, warning=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot(pf, aes(fill=HeartDisease, y=HeartDisease, x=ExerciseAngina)) + 
+    ggtitle("Chest Pain (Angina) and Heart Disease")+
+    geom_bar(position="stack", stat="identity")+
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+From this comparison, you can draw a couple different conclusions. First, for\  
+patients where Exercise Angina was not present, approximately half were\  
+diagnosed with heart disease. For patients who did complain of exercise \  
+angina, the vast majority did in fact end with a diagnosis of heart disease.\  
+This proves a correlation skewed toward the diagnosis of heart disease and the\  
+presence of exercise angina.
+
+Looking at the number of non-diagnosed patients, the majority did not experience\  
+exercise angina.  Unfortunately this factor alone also proves to not be a solid\  
+and reliable indicator alone. We will compare additional variables.
+
+
+```{r HD_Age, echo=FALSE, message=FALSE, warning=FALSE}
+qplot(HeartDisease, Age, data=pf, geom=c("boxplot", "jitter"), 
+   aes(group=HeartDisease), fill=Age, color=Age, 
+   main="Heart Disease & Age", xlab="Heart Disease Diagnosis", 
+   ylab="Patient Age") +
+   theme(plot.title = element_text(hjust = 0.5))
+```
+
+The diagnosis of heart disease, when confirmed, clearly leans toward a higher\  
+age group. Of the patients in the dataset who were not diagnosed with heart \  
+disease, the median age is much closer to 50. For positive diagnoses, the \  
+median age is much closer to 57.  The patients without a diagnosis of heart\  
+disease generally were younger, the majority being between ages 48 and 56, \  
+approximately.  The same quartiles for positive diagnoses were between ages \  
+51 and 62.
+
+
+```{r, HD_CHolest, echo=FALSE, message=FALSE, warning=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+
+qplot(HeartDisease, Cholesterol, data=pf, geom=c("boxplot", "jitter"), 
+   aes(group=HeartDisease), fill=Cholesterol, color=Cholesterol, 
+   main="Heart Disease & Cholesterol", xlab="Heart Disease Diagnosis", 
+   ylab="Cholesterol Level") + 
+   theme(plot.title = element_text(hjust = 0.5)) #+
+   #coord_cartesian(ylim = c(50, 620))
+   
+```
+
+In this chart, it becomes evident that a lot of patients likely did not have\  
+their cholesterol checked upon admission, or during their hospital visit. \  
+This skews the boxplot for both positive and negative diagnosis of heart \  
+disease. I'll attempt to ignore the zeroes and view the remainder.
+
+
+```{r, HD_CHolest2, echo=FALSE, message=FALSE, warning=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+
+pf$Cholesterol[pf$Cholesterol == 0] <- NA
+qplot(HeartDisease, Cholesterol, data=pf, geom=c("boxplot", "jitter"), 
+   aes(group=HeartDisease), fill=Cholesterol, color=Cholesterol, 
+   main="Heart Disease & Cholesterol", xlab="Heart Disease Diagnosis", 
+   ylab="Cholesterol Level") + 
+   theme(plot.title = element_text(hjust = 0.5)) 
+
+   
+```
+
+Heart disease patients' cholesterol levels don't seem to vary much from those\  
+who were not diagnosed.  The median is only slightly higher, and the\  
+interquartile range slightly higher for cholesterol levels in positively\  
+diagnosed patients.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, residualsugar_quality}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+qplot(HeartDisease, RestingBP, data=pf, geom=c("boxplot", "jitter"), 
+   aes(group=RestingBP), fill=RestingBP, color=RestingBP, 
+   main="Resting Blood Pressure Compared With Heart Disease Diagnosis",
+   xlab="Heart Disease Indicated", ylab="Resting Blood Pressure (Systolic)") 
+```
+
+
+It's interesting to see the lack of significant difference in the Resting Blood\  
+pressure of patients who were or were not diagnosed with heart disease. It \  
+looks like the upper and lower limits align with what you'd expect, the most \  
+extreme of them tending toward a positive diagnosis, and the lesser on the 0\  
+or negative diagnosis side.
+
+
+>Since sex/gender are often cited as having a different likelihood for certain
+medical conditions, we'll compare gender and heart disease diagnoses as well.
+
+```{r, HD_Gender, echo=FALSE, message=FALSE, warning=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot(pf, aes(fill=HeartDisease, y=HeartDisease, x=Sex)) + 
+    geom_bar(position="stack", stat="identity")+ 
+   ggtitle("Gender and Heart Disease Comparison")+
+   theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+From the 
+
+# Bivariate Analysis
+
+For patients with heart disease and for those without, we compared several\  
+factors to see if they were weighted heavily for or against the diagnosis.\  
+
+Exercise Angina was much greater in patients with heart disease. Though slighly\  
+higher, age was only a moderate factor. Ages did average higher in positively\  
+diagnosed patients.
+
+Cholesterol levels and resting heart rates were both only very slightly elevated\  
+in patients with heart disease. 
+
+Last but not least, though the total population was heavily weighted toward\  
+males, the female population with heart disease was closer to or less than half\  
+where the males were a vast majority.
+
+In our initial correlation view, heart disease paired most strongly with\  
+exercise angina, followed by Old Peak values. ST slope was a strong negative\  
+correlation, and we will examine this in more detail in the coming sections.
+
+
+
+
+# Multivariate Analysis 
+We will compare the following sets of variables below, based on correlations:
+
+>HeartDisease, ExerciseAngina, OldPeak based on strong positive correlations
+
+>HeartDisease, ST_Slope, OldPeak based on strong negative correlations
+
+>HeartDisease, ST Slope, MaxHR based on correlation between MaxHR/ST Slope, 
+& using target of analysis
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, sugar_alcohol_quality}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot() + geom_point(data = pf, aes(x = ExerciseAngina, y = Oldpeak, 
+   color = HeartDisease, position="jitter", alpha=.2)) + 
+   scale_color_brewer(palette="Dark2")+
+   ggtitle("Heart Disesase, Oldpeak Values, and Angina")+
+   theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+This chart shows the comparison between the "Old Peak", or ST elevation peak, \  
+and the existence of chest pain (angina) with exercise, and whether that\  
+patient was diagnosed with heart disease.
+
+It appears that more patients with heart disease did experience chest pain, \  
+with a peak of around 1.25 being the median of the majority of those with \  
+both chest pain and heart disease.
+
+
+
+```{r HD_OP_ST, echo=FALSE, message=FALSE, warning=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot() + geom_point(data = pf, aes(x =ST_Slope , y = Oldpeak, color = HeartDisease))  + 
+   scale_color_brewer(palette="Set1")+
+   ggtitle("Heart Disease compared with Old Peak and ST Slope Values")
+```
+
+Since there was a strong negative correlation between some of these variables,\  
+I wanted to review their relationships. ST Slopes of "Up" seem to have a higher\  
+concentration of negative heart disease diagnosis, and a lower "Oldpeak" value\  
+than the average that did have heart disease and chest pain in the prior visual.
+
+ST Slopes of Flat seem to have the highest concentration of heart disease \  
+patients, and the value of the Oldpeak is consistent with our prior \  
+visualization, as would be expected.
+
+ST Slopes of "Down" seem to have a fair mix of heart disease positive and \  
+negative diagnoses, and the Oldpeak values are spread further apart, but the\  
+median seems to be closer to 2.5, which is much higher than the positive \  
+majoriy, as well as the flat or up slopes.
+
+HeartDisease, ST Slope, MaxHR
+>based on correlation between MaxHR/ST Slope, & using target of analysis
+
+```{r HD_ST_HR, echo=FALSE, message=FALSE, error=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot(data = pf,  aes(x = ST_Slope, y = MaxHR, color = HeartDisease)) + 
+  geom_point(position = "jitter", alpha = .8) +
+   ggtitle("ST Slope compared with Max Heart Rate & Diagnosis of Heart Disease")
+```
+
+It's clear that ST Slopes of Flat seem to have the highest concentration of\  
+positive heart disease findings, with a rather well-distributed value for Max\  
+Heart Rate. 
+
+
+```{r HD_ECG_ST, echo=FALSE, message=FALSE, error=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot(data = pf,  aes(x = ST_Slope, y = RestingECG, color = HeartDisease)) + 
+  geom_point(position = "jitter", alpha = .8) +
+   ggtitle("ST Slope compared with Max Heart Rate & Diagnosis of Heart Disease")
+```
+
+I thought this was a very interesting view, comparing ST slope and ECG readings,\  
+and showing where positive and negative heart disease diagnoses lie.  There \  
+is a heavy concentration of Flat ST Slopes with Normal ECG readings and a \  
+positive heart disease diagnosis in those patients.
+
+
+# Multivariate Analysis
+
+Based on the correlations and relationships above, I decided to compare several\  
+combinations of variables along with heart disease. Most patients with heart\  
+disease experienced chest pain. Old Peak values, though correlated strongly,\  
+did not vary greatly between those with chest pain and those without. It\  
+looks as though the values are only slightly higher on average.
+
+ST slope, discussed briefly above, has the strongest correlation with heart\  
+disease patients when the value is "Up". Old peak values are again distributed\  
+mostly evenly amongst these three audiences, but only slightly higher when\  
+ST slope is down. Heart disease, however, was fairly evenly distributed between\  
+positive and negative diagnoses in that cohort. Flat slope was more positive\ 
+and Up slope was more negative for heart disease, with the Old Peak values'\  
+average declining in each.  In the following visual we swapped Heart Rate in\  
+for ST slope, and found Up Slopes had higher heart rates than flat, with the\  
+same distribution between ST slope and heart disease.
+
+Lastly, there is a heavy concentration of Flat ST Slopes with Normal ECG\  
+readings and a positive heart disease diagnosis in those patients.
+
+
+------
+
+
+
+# Final Review and Summary
+
+
+### Correlation Matrix
+
+The correlation between variables is a strong lead toward further analysis\  
+that can be done, so I wanted to include this in my final summary.
+
+```{r Plot_One, echo=FALSE}
+corrgram(pf2, order=TRUE, lower.panel=panel.shade, upper.panel=panel.cor, 
+         label.pos = c(0.5, 0.5), gap=.3, 
+         label.srt=0, text.panel=panel.txt, 
+         main="Heart Disease Correlation to Various Vitals and Statistics")
+```
+# Correlation Matrix Notes
+
+The correlation matrix above shows dark blue for strong positive correlation, \  
+and dark red for strong negative correlation. I've updated so there are numbers\  
+to illustrate the correlation along with the color shades.
+
+The labels exist in the spaces where the matrix items would intersect with\  
+themselves, forming the diagonal. This is a great overall view of the data set\  
+and correlations between pairs of variables.
+
+### Heart Disease compared to ECG & ST Values
+
+```{r HD_ECG_ST2, echo=FALSE, message=FALSE, error=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot(data = pf,  aes(x = ST_Slope, y = RestingECG, color = HeartDisease)) + 
+  geom_point(position = "jitter", alpha = .8) +
+   ggtitle("ST Slope compared with Max Heart Rate & Diagnosis of Heart Disease")
+```
+
+### Findings
+
+There is a heavy concentration of Flat ST Slopes with Normal ECG readings and a\  
+positive heart disease diagnosis in those patients. There is a similar\  
+concentration of negative heart disease findings in the Normal ECG range with\  
+a slope value of "Up".
+
+
+
+### Heart Disease & Gender
+
+```{r, HD_Gender2, echo=FALSE, message=FALSE, warning=FALSE}
+pf$HeartDisease <- as.factor(pf$HeartDisease)
+ggplot(pf, aes(fill=HeartDisease, y=HeartDisease, x=Sex)) + 
+    geom_bar(position="stack", stat="identity")+ 
+   ggtitle("Gender and Heart Disease Comparison")+
+   theme(plot.title = element_text(hjust = 0.5)) 
+```
+
+
+### Gender Analysis
+
+It can be assumed that gender, based on the visual, will weigh slightly toward\  
+a positive diagnosis in males when this data is run through a model. The male\  
+population was much greater, so it would be interesting to have more data on\  
+female patients to see if the distribution of a larger sample remained the same.
+
+
+------
+
+# Reflection
+
+Of all the features in the dataset, there were a few that in practical\  
+application will be strongly correlated with heart disease diagnosis. Of these,\  
+I believe that ST slope, Exercise Angina, Old Peak, and gender will be some\  
+of the strongest predictors. As mentioned above, a larger sample set could\  
+possibly confirm this to be true, especially in the female sample set. 
+
+It is helpful to have real world data and studies that have been done, many on\  
+the relationships of these factors to heart disease, heart attacks, and related\  
+issues.  Studies have backed some of the findings of this analysis.
+
+It would be very helpful to have a larger data set to confirm whether female\  
+patients have the same nearly equal split in positive or negative diagnoses.
+
+
+------
+
+## References:
+
+  
+R Cookbook:  http://www.cookbook-r.com/
+
+R Bloggers: https://www.r-bloggers.com/
+
+Quick-R: https://www.statmethods.net/advgraphs/correlograms.html
+
+Fedesoriano. (2021). Heart Failure Prediction Dataset. Kaggle.
+https://www.kaggle.com/fedesoriano/heart-failure-prediction.
+
+Mayo Clinic Staff. (n.d.). Heart Disease. May Clinic. 
+https://www.mayoclinic.org/diseases-conditions/heart-disease/symptoms-causes/\  
+syc-20353118 
+
+Wilson, Peter W. F.. (12 May 1998).  Prediction of Coronary Heart Disease Using\  
+Risk Factor Categories. American Heart Association Journals.
+https://www.ahajournals.org/doi/10.1161/01.CIR.97.18.1837 
+
+
